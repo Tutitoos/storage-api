@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"storage-api/src/application/middlewares"
 	"storage-api/src/application/routers"
 	"storage-api/src/domain"
 )
@@ -30,6 +31,8 @@ func Api() {
 		AllowMethods:     []string{"GET,POST,PUT,DELETE,OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "application/json", "multipart/form-data"},
 	}))
+
+	app.Use(middlewares.AuthMiddleware)
 
 	router := app.Group("/v1")
 

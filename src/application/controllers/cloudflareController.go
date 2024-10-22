@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"regexp"
 	"storage-api/src/domain"
 	"storage-api/src/infrastructure/services"
 	"strings"
@@ -13,10 +14,11 @@ import (
 )
 
 type FileInfo struct {
-	Id           string    `json:"id"`
-	Url          string    `json:"url"`
+	Filename     string    `json:"filename"`
+	Folder       string    `json:"folder"`
 	Size         int64     `json:"size"`
 	LastModified time.Time `json:"lastModified"`
+	Url          string    `json:"url"`
 }
 
 type ICloudflareController struct {
@@ -55,14 +57,37 @@ func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
 		return ctx.JSON(result)
 	}
 
+	var exclude = []string{
+		"(/\\.|^\\.)",
+	}
+
+	var excludeFolders = domain.CONFIG.ExcludeFolders
+	var excludeFiles = domain.CONFIG.ExcludeFiles
+
 	files := make([]FileInfo, 0, len(rawFiles))
 	for _, rawFile := range rawFiles {
 		filePath := *rawFile.Key
-		fileId := filePath[strings.LastIndex(filePath, "/")+1:]
+
+		if regexp.MustCompile(`(?i)` + strings.Join(exclude, "|")).MatchString(filePath) {
+			continue
+		}
+		if regexp.MustCompile(`(?i)` + strings.Join(excludeFolders, "|")).MatchString(filePath) {
+			continue
+		}
+		if regexp.MustCompile(`(?i)` + strings.Join(excludeFiles, "|")).MatchString(filePath) {
+			continue
+		}
+
+		fileName := filePath[strings.LastIndex(filePath, "/")+1:]
+		if !strings.Contains(fileName, ".") {
+			continue
+		}
+
 		path := fmt.Sprintf("%s/file/%s", domain.CONFIG.ApiUrl, filePath)
 
 		files = append(files, FileInfo{
-			Id:           fileId,
+			Filename:     fileName,
+			Folder:       filePath[:strings.LastIndex(filePath, "/")],
 			Url:          path,
 			Size:         *rawFile.Size,
 			LastModified: *rawFile.LastModified,
@@ -189,7 +214,8 @@ func (c *ICloudflareController) UploadFileHandler(ctx fiber.Ctx) error {
 		}
 
 		files = append(files, FileInfo{
-			Id:           filename,
+			Filename:     filename,
+			Folder:       folder,
 			Size:         size,
 			LastModified: time.Now(),
 			Url:          domain.CONFIG.ApiUrl + "/file" + path,

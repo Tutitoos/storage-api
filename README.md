@@ -59,19 +59,23 @@ docker-compose up --build
 En el archivo `.env`, debes configurar las siguientes variables para que la API funcione correctamente:
 
 ```env
-PORT=4003                   # Puerto en el que la API escucha.
-TRY_PORT=4004               # Puerto alternativo si PORT no está disponible.
-API_URL=http://localhost:{PORT}  # URL base de la API con placeholder para el puerto.
-TOKEN=                      # Token de autorización para acceder a la API.
+PORT="4003"                        # Puerto en el que la API escucha.
+TRY_PORT="4004"                    # Puerto alternativo si PORT no está disponible.
+API_URL="http://localhost:{PORT}"  # URL base de la API con placeholder para el puerto.
+TOKEN=""                           # Token de autorización para acceder a la API.
 
 # Cloudflare
-CLOUDFLARE_ACCOUNT_ID=       # ID de la cuenta de Cloudflare.
-CLOUDFLARE_ACCESS_KEY_ID=    # ID de la clave de acceso de Cloudflare.
-CLOUDFLARE_ACCESS_KEY_SECRET=# Clave secreta de acceso de Cloudflare.
+CLOUDFLARE_ACCOUNT_ID=""           # ID de la cuenta de Cloudflare.
+CLOUDFLARE_ACCESS_KEY_ID=""        # ID de la clave de acceso de Cloudflare.
+CLOUDFLARE_ACCESS_KEY_SECRET=""    # Clave secreta de acceso de Cloudflare.
 
 # Cloudflare Storage
-BUCKET_NAME=                 # Nombre del bucket en Cloudflare.
-BUCKET_REGION=eeur           # Región del bucket en Cloudflare (ej. eeur).
+BUCKET_NAME=""                     # Nombre del bucket en Cloudflare.
+BUCKET_REGION="eeur"               # Región del bucket en Cloudflare. Ejemplo:  "eeur"
+
+# Rules
+EXCLUDE_FOLDER=""                  # Carpetas que no deben ser incluidas en la respuesta de la API. Ejemplo: "my-folder,my-other-folder"
+EXCLUDE_FILE=""                    # Archivos que no deben ser incluidos en la respuesta de la API. Ejemplo: "my-file.txt,my-other-file.txt"
 ```
 
 ### Verificar la API
