@@ -61,8 +61,23 @@ func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
 		"(/\\.|^\\.)",
 	}
 
-	var excludeFolders = domain.CONFIG.ExcludeFolders
-	var excludeFiles = domain.CONFIG.ExcludeFiles
+	var excludeFolders = make([]string, 0)
+	if len(domain.CONFIG.ExcludeFolders) > 0 {
+		for _, folder := range domain.CONFIG.ExcludeFolders {
+			if folder != "" {
+				excludeFolders = append(excludeFolders, folder)
+			}
+		}
+	}
+
+	var excludeFiles = make([]string, 0)
+	if len(domain.CONFIG.ExcludeFiles) > 0 {
+		for _, file := range domain.CONFIG.ExcludeFiles {
+			if file != "" {
+				excludeFiles = append(excludeFiles, file)
+			}
+		}
+	}
 
 	files := make([]FileInfo, 0, len(rawFiles))
 	for _, rawFile := range rawFiles {
@@ -71,10 +86,11 @@ func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
 		if regexp.MustCompile(`(?i)` + strings.Join(exclude, "|")).MatchString(filePath) {
 			continue
 		}
-		if regexp.MustCompile(`(?i)` + strings.Join(excludeFolders, "|")).MatchString(filePath) {
+
+		if len(excludeFolders) > 0 && regexp.MustCompile(`(?i)`+strings.Join(excludeFolders, "|")).MatchString(filePath) {
 			continue
 		}
-		if regexp.MustCompile(`(?i)` + strings.Join(excludeFiles, "|")).MatchString(filePath) {
+		if len(excludeFiles) > 0 && regexp.MustCompile(`(?i)`+strings.Join(excludeFiles, "|")).MatchString(filePath) {
 			continue
 		}
 

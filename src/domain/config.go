@@ -75,16 +75,6 @@ func Config() *IConfig {
 		log.Fatalf("Invalid BUCKET_REGION value")
 	}
 
-	excludeFolders := os.Getenv("EXCLUDE_FOLDER")
-	if excludeFolders == "" {
-		log.Fatalf("Invalid EXCLUDE_FOLDER value")
-	}
-
-	excludeFiles := os.Getenv("EXCLUDE_FILE")
-	if excludeFiles == "" {
-		log.Fatalf("Invalid EXCLUDE_FILE value")
-	}
-
 	if port == 0 {
 		port = tryPort
 	}
@@ -99,8 +89,8 @@ func Config() *IConfig {
 		BucketName:                bucketName,
 		BucketRegion:              bucketRegion,
 		BucketUrl:                 "https://" + cloudflareAccountId + ".r2.cloudflarestorage.com",
-		ExcludeFolders:            strings.Split(excludeFolders, ","),
-		ExcludeFiles:              strings.Split(excludeFiles, ","),
+		ExcludeFolders:            strings.Split(os.Getenv("EXCLUDE_FOLDER"), ","),
+		ExcludeFiles:              strings.Split(os.Getenv("EXCLUDE_FILE"), ","),
 	}
 }
 
