@@ -1,6 +1,9 @@
 # use official Golang image
 FROM golang:1.23.2 AS builder
 
+# Set name image
+LABEL name="storage-api"
+
 # Set the working directory inside the container
 WORKDIR /app
 
