@@ -41,6 +41,11 @@ services:
       - "4004:4004"
     env_file:
       - .env
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 500m
 ```
 
 Luego, ejecuta:
