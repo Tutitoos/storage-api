@@ -12,10 +12,11 @@ import (
 	"storage-api/src/application/middlewares"
 	"storage-api/src/application/routers"
 	"storage-api/src/domain"
-	"time"
 )
 
 func Api() {
+	domain.Collector()
+
 	if err := domain.CustomLogger("logs/app.log"); err != nil {
 		log.Fatalf("error al crear logger: %v", err)
 	}
@@ -43,32 +44,32 @@ func Api() {
 	}))
 
 	app.Use(func(ctx fiber.Ctx) error {
-		start := time.Now()
-		err := ctx.Next()
-		latency := time.Since(start)
+		//start := time.Now()
+		//err := ctx.Next()
+		//latency := time.Since(start)
 
-		logMessage := fmt.Sprintf("%s :: %s :: %s :: %s %s :: %d :: %s",
+		logMessage := fmt.Sprintf("%s :: %s :: %s :: %s %s :: %d",
 			ctx.IP(),
 			ctx.IPs(),
 			ctx.Method(),
 			ctx.Path(),
 			ctx.OriginalURL(),
 			ctx.Response().StatusCode(),
-			latency,
+			//latency,
 		)
 
 		domain.Logger.Debug(logMessage)
 
-		if ctx.Response().StatusCode() != http.StatusOK {
-			responseData := ctx.Response().Body()
-			return ctx.SendString(string(responseData))
-		}
-
-		if err != nil {
-			result := domain.ResultData[string]()
-			result.AddError(ctx.Response().StatusCode(), err.Error())
-			return ctx.Status(ctx.Response().StatusCode()).JSON(result)
-		}
+		//if ctx.Response().StatusCode() != http.StatusOK {
+		//	responseData := ctx.Response().Body()
+		//	return ctx.SendString(string(responseData))
+		//}
+		//
+		//if err != nil {
+		//	result := domain.ResultData[string]()
+		//	result.AddError(ctx.Response().StatusCode(), err.Error())
+		//	return ctx.Status(ctx.Response().StatusCode()).JSON(result)
+		//}
 
 		return ctx.Next()
 	})
