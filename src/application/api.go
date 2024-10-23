@@ -41,7 +41,7 @@ func Api() {
 		AllowHeaders:     []string{"Content-Type", "application/json", "multipart/form-data"},
 	}))
 
-	app.Use(middlewares.IPWhitelistMiddleware)
+	//app.Use(middlewares.IPWhitelistMiddleware)
 	app.Use(middlewares.AuthMiddleware)
 
 	router := app.Group("/v1")
