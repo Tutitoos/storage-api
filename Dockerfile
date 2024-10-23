@@ -22,10 +22,13 @@ WORKDIR /app/src
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -a -installsuffix cgo -o ../storage-api .
 
 # Execution stage using scratch
-FROM scratch AS runner
+FROM alpine AS runner
 
 # Set the working directory to /app
 WORKDIR /app
+
+# Create the logs directory
+RUN mkdir -p logs
 
 # Import the CA certificates from the build stage to allow HTTPS requests
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

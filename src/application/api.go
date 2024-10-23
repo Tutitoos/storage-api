@@ -12,9 +12,15 @@ import (
 	"storage-api/src/application/middlewares"
 	"storage-api/src/application/routers"
 	"storage-api/src/domain"
+	"time"
 )
 
 func Api() {
+	if err := domain.CustomLogger("logs/app.log"); err != nil {
+		log.Fatalf("error al crear logger: %v", err)
+	}
+	defer domain.Logger.Close()
+
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
@@ -22,17 +28,50 @@ func Api() {
 		ErrorHandler: func(ctx fiber.Ctx, err error) error {
 			result := domain.ResultData[string]()
 			result.AddError(http.StatusInternalServerError, err.Error())
-			return ctx.JSON(result)
+			return ctx.Status(http.StatusInternalServerError).JSON(result)
 		},
 	})
 
 	app.Use(recover.New())
 
+	app.Use(middlewares.IPWhitelistMiddleware)
+
 	app.Use(logger.New(logger.Config{
 		Format:     "${time} :: ${ip} :: ${ips} :: ${status} :: ${method} ${path} :: ${latency}\n",
-		TimeFormat: "02-02-2006 15:04:05",
+		TimeFormat: "02-01-2006 03:04:05 PM",
 		TimeZone:   "Europe/Madrid",
 	}))
+
+	app.Use(func(ctx fiber.Ctx) error {
+		start := time.Now()
+		err := ctx.Next()
+		latency := time.Since(start)
+
+		logMessage := fmt.Sprintf("%s :: %s :: %s :: %s %s :: %d :: %s",
+			ctx.IP(),
+			ctx.IPs(),
+			ctx.Method(),
+			ctx.Path(),
+			ctx.OriginalURL(),
+			ctx.Response().StatusCode(),
+			latency,
+		)
+
+		domain.Logger.Debug(logMessage)
+
+		if ctx.Response().StatusCode() != http.StatusOK {
+			responseData := ctx.Response().Body()
+			return ctx.SendString(string(responseData))
+		}
+
+		if err != nil {
+			result := domain.ResultData[string]()
+			result.AddError(ctx.Response().StatusCode(), err.Error())
+			return ctx.Status(ctx.Response().StatusCode()).JSON(result)
+		}
+
+		return ctx.Next()
+	})
 
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,

@@ -21,6 +21,7 @@ type IConfig struct {
 	ExcludeFolders            []string
 	ExcludeFiles              []string
 	WhitelistIps              []string
+	BypassWhitelist           string
 }
 
 func Config() *IConfig {
@@ -98,6 +99,7 @@ func Config() *IConfig {
 		ExcludeFolders:            strings.Split(os.Getenv("EXCLUDE_FOLDER"), ","),
 		ExcludeFiles:              strings.Split(os.Getenv("EXCLUDE_FILE"), ","),
 		WhitelistIps:              strings.Split(whitelistIps, ","),
+		BypassWhitelist:           os.Getenv("BYPASS_WHITELIST"),
 	}
 }
 

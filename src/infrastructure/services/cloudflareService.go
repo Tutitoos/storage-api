@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 	"io"
-	"log"
 	"storage-api/src/domain"
 	"time"
 )
@@ -37,7 +36,7 @@ func CloudflareService() *ICloudflareService {
 		config.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
-		log.Fatalf("Error loading config " + err.Error())
+		domain.Logger.Error("Error loading config " + err.Error())
 
 		return nil
 	}

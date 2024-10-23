@@ -12,6 +12,8 @@ services:
       - "4004:4004"
     env_file:
       - .env
+    volumes:
+      - "/logs:/logs"
     deploy:
       resources:
         limits:

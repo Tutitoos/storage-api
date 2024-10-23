@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/gofiber/fiber/v3"
 	"io"
 	"mime/multipart"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"time"
 )
+
+const DefaultContentType = "application/octet-stream"
 
 type FileInfo struct {
 	Filename     string    `json:"filename"`
@@ -36,7 +39,7 @@ func (c *ICloudflareController) GetHomeHandler(ctx fiber.Ctx) error {
 
 	result.AddMessage("API is up and running!")
 
-	return ctx.JSON(result)
+	return ctx.Status(http.StatusOK).JSON(result)
 }
 
 func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
@@ -48,13 +51,13 @@ func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
 	filename := segments[len(segments)-1]
 	if strings.Contains(filename, ".") {
 		result.AddError(http.StatusBadRequest, "File name is not allowed")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	rawFiles, err := c.storage.GetFiles(fullPath)
 	if err != nil {
 		result.AddError(http.StatusNotFound, err.Error())
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusNotFound).JSON(result)
 	}
 
 	var exclude = []string{
@@ -111,7 +114,7 @@ func (c *ICloudflareController) GetFilesHandler(ctx fiber.Ctx) error {
 	}
 
 	result.AddData(files)
-	return ctx.JSON(result)
+	return ctx.Status(http.StatusOK).JSON(result)
 }
 
 func (c *ICloudflareController) GetFileHandler(ctx fiber.Ctx) error {
@@ -123,34 +126,32 @@ func (c *ICloudflareController) GetFileHandler(ctx fiber.Ctx) error {
 	filename := segments[len(segments)-1]
 	if filename == "" {
 		result.AddError(http.StatusBadRequest, "File name is missing")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	if !strings.Contains(filename, ".") {
 		result.AddError(http.StatusBadRequest, "File name is not allowed")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	file, err := c.storage.GetFile(fullPath)
 	if err != nil {
 		result.AddError(http.StatusNotFound, err.Error())
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusNotFound).JSON(result)
 	}
 
 	if file == nil {
 		result.AddError(http.StatusNotFound, "File not found")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusNotFound).JSON(result)
+	}
+
+	if file.ContentType == nil {
+		file.ContentType = aws.String(DefaultContentType)
 	}
 
 	ctx.Attachment(filename)
 	ctx.Status(http.StatusOK)
 	ctx.Set("Content-Type", *file.ContentType)
-
-	err = ctx.SendStream(io.NopCloser(file.Body))
-	if err != nil {
-		result.AddError(http.StatusInternalServerError, err.Error())
-		return ctx.JSON(result)
-	}
 
 	return ctx.SendStream(io.NopCloser(file.Body))
 }
@@ -164,48 +165,64 @@ func (c *ICloudflareController) DeleteFileHandler(ctx fiber.Ctx) error {
 	filename := segments[len(segments)-1]
 	if filename == "" {
 		result.AddError(http.StatusBadRequest, "File name is missing")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	if !strings.Contains(filename, ".") {
 		result.AddError(http.StatusBadRequest, "File name is not allowed")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	_, err := c.storage.GetFile(fullPath)
 	if err != nil {
 		result.AddError(http.StatusNotFound, err.Error())
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusNotFound).JSON(result)
 	}
 
 	_, errDelete := c.storage.DeleteFile(fullPath)
 	if errDelete != nil {
 		result.AddMessage("File could not be deleted")
 		result.AddError(http.StatusInternalServerError, errDelete.Error())
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusInternalServerError).JSON(result)
 	}
 
 	result.AddMessage("File deleted successfully")
 
-	return ctx.JSON(result)
+	return ctx.Status(http.StatusOK).JSON(result)
 }
 
 func (c *ICloudflareController) UploadFileHandler(ctx fiber.Ctx) error {
 	result := domain.ResultData[[]FileInfo]()
 
-	query := ctx.Queries()
-	folder := query["folder"]
+	isOverwrite := ctx.Query("overwrite", "false")
+
+	if !strings.Contains(ctx.Get("Content-Type"), "multipart/form-data") {
+		result.AddError(http.StatusBadRequest, "Request is not a multipart/form-data")
+		return ctx.Status(http.StatusBadRequest).JSON(result)
+	}
 
 	form, err := ctx.MultipartForm()
 	if err != nil {
-		result.AddError(http.StatusBadRequest, "Error retrieving form data: "+err.Error())
-		return ctx.JSON(result)
+		if err.Error() == "request Content-Type has bad boundary or is not multipart/form-data" {
+			result.AddError(http.StatusBadRequest, "The request body is not a valid multipart/form-data")
+		} else {
+			result.AddError(http.StatusBadRequest, "Error retrieving form data: "+err.Error())
+		}
+
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
+	rawFolder := form.Value
+	if len(rawFolder) < 0 || len(rawFolder["folder"]) < 0 || rawFolder["folder"][0] == "" {
+		result.AddError(http.StatusBadRequest, "Folder is missing")
+		return ctx.Status(http.StatusBadRequest).JSON(result)
+	}
+
+	folder := rawFolder["folder"][0]
 	rawFiles := form.File["files"]
 	if len(rawFiles) == 0 {
 		result.AddError(http.StatusBadRequest, "File(s) is missing")
-		return ctx.JSON(result)
+		return ctx.Status(http.StatusBadRequest).JSON(result)
 	}
 
 	var files []FileInfo
@@ -216,10 +233,12 @@ func (c *ICloudflareController) UploadFileHandler(ctx fiber.Ctx) error {
 
 		path := fmt.Sprintf("/%s/%s", folder, filename)
 
-		_, errFile := c.storage.GetFile(path)
-		if errFile != nil {
-			result.AddError(http.StatusConflict, "File already exists: "+rawFile.Filename)
-			continue
+		if isOverwrite == "false" {
+			_, errFile := c.storage.GetFile(path)
+			if errFile != nil {
+				result.AddError(http.StatusConflict, "File already exists: "+rawFile.Filename)
+				continue
+			}
 		}
 
 		fileData, errFileData := rawFile.Open()
@@ -232,12 +251,21 @@ func (c *ICloudflareController) UploadFileHandler(ctx fiber.Ctx) error {
 			errData := data.Close()
 			if errData != nil {
 				result.AddError(http.StatusInternalServerError, "Error when closing file: "+rawFile.Filename)
+
+				domain.Logger.Error(errData.Error())
 			}
 		}(fileData)
+
+		if contentType != DefaultContentType {
+			contentType = DefaultContentType
+		}
 
 		_, errUpload := c.storage.UploadFile(fileData, folder, filename, contentType)
 		if errUpload != nil {
 			result.AddError(http.StatusBadRequest, "Error when uploading file: "+rawFile.Filename)
+
+			domain.Logger.Error(errUpload.Error())
+
 			continue
 		}
 
@@ -253,8 +281,10 @@ func (c *ICloudflareController) UploadFileHandler(ctx fiber.Ctx) error {
 	if len(files) > 0 {
 		result.AddData(files)
 		result.AddMessage(fmt.Sprintf("Files uploaded successfully: %d", len(files)))
+		ctx.Status(http.StatusOK)
 	} else {
 		result.AddMessage("No files were uploaded successfully")
+		ctx.Status(http.StatusBadRequest)
 	}
 
 	return ctx.JSON(result)
