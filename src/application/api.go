@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"net/http"
 	"storage-api/src/application/middlewares"
 	"storage-api/src/application/routers"
 	"storage-api/src/domain"
@@ -17,7 +19,14 @@ func Api() {
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 		BodyLimit:   10 << 20,
+		ErrorHandler: func(ctx fiber.Ctx, err error) error {
+			result := domain.ResultData[string]()
+			result.AddError(http.StatusInternalServerError, err.Error())
+			return ctx.JSON(result)
+		},
 	})
+
+	app.Use(recover.New())
 
 	app.Use(logger.New(logger.Config{
 		Format:     "${time} :: ${ip} :: ${ips} :: ${status} :: ${method} ${path} :: ${latency}\n",
@@ -27,11 +36,12 @@ func Api() {
 
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
-		AllowOrigins:     []string{"https://s3-elcoheteboom.tutitoos.xyz"},
+		AllowOrigins:     []string{"https://elcoheteboom.com"},
 		AllowMethods:     []string{"GET,POST,PUT,DELETE,OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "application/json", "multipart/form-data"},
 	}))
 
+	app.Use(middlewares.IPWhitelistMiddleware)
 	app.Use(middlewares.AuthMiddleware)
 
 	router := app.Group("/v1")

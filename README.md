@@ -73,9 +73,12 @@ CLOUDFLARE_ACCESS_KEY_SECRET=""    # Clave secreta de acceso de Cloudflare.
 BUCKET_NAME=""                     # Nombre del bucket en Cloudflare.
 BUCKET_REGION="eeur"               # Región del bucket en Cloudflare. Ejemplo:  "eeur"
 
-# Rules
+# Rules Explorer
 EXCLUDE_FOLDER=""                  # Carpetas que no deben ser incluidas en la respuesta de la API. Ejemplo: "my-folder,my-other-folder"
 EXCLUDE_FILE=""                    # Archivos que no deben ser incluidos en la respuesta de la API. Ejemplo: "my-file.txt,my-other-file.txt"
+
+# Rules Whitelist IP
+WHITELIST_IPS="127.0.0.1,::1"      # IPs que no deben ser incluidas en la respuesta de la API. Ejemplo: "127.0.0.1,::1"
 ```
 
 ### Verificar la API

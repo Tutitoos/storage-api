@@ -20,6 +20,7 @@ type IConfig struct {
 	BucketUrl                 string
 	ExcludeFolders            []string
 	ExcludeFiles              []string
+	WhitelistIps              []string
 }
 
 func Config() *IConfig {
@@ -75,6 +76,11 @@ func Config() *IConfig {
 		log.Fatalf("Invalid BUCKET_REGION value")
 	}
 
+	whitelistIps := os.Getenv("WHITELIST_IPS")
+	if whitelistIps == "" {
+		whitelistIps = "127.0.0.1,::1"
+	}
+
 	if port == 0 {
 		port = tryPort
 	}
@@ -91,6 +97,7 @@ func Config() *IConfig {
 		BucketUrl:                 "https://" + cloudflareAccountId + ".r2.cloudflarestorage.com",
 		ExcludeFolders:            strings.Split(os.Getenv("EXCLUDE_FOLDER"), ","),
 		ExcludeFiles:              strings.Split(os.Getenv("EXCLUDE_FILE"), ","),
+		WhitelistIps:              strings.Split(whitelistIps, ","),
 	}
 }
 

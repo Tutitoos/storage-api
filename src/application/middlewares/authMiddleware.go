@@ -16,5 +16,11 @@ func AuthMiddleware(ctx fiber.Ctx) error {
 		return ctx.Status(http.StatusUnauthorized).JSON(result)
 	}
 
+	if authToken != domain.CONFIG.Token {
+		result.AddMessage("Authorization token is invalid")
+
+		return ctx.Status(http.StatusUnauthorized).JSON(result)
+	}
+
 	return ctx.Next()
 }

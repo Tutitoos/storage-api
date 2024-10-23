@@ -137,9 +137,21 @@ func (c *ICloudflareController) GetFileHandler(ctx fiber.Ctx) error {
 		return ctx.JSON(result)
 	}
 
+	if file == nil {
+		result.AddError(http.StatusNotFound, "File not found")
+		return ctx.JSON(result)
+	}
+
 	ctx.Attachment(filename)
 	ctx.Status(http.StatusOK)
 	ctx.Set("Content-Type", *file.ContentType)
+
+	err = ctx.SendStream(io.NopCloser(file.Body))
+	if err != nil {
+		result.AddError(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(result)
+	}
+
 	return ctx.SendStream(io.NopCloser(file.Body))
 }
 
